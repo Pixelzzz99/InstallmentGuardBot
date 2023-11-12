@@ -20,6 +20,7 @@ class Bot {
     for (const command of this.commands) {
       command.handle();
     }
+
     this.bot.launch();
   }
 }

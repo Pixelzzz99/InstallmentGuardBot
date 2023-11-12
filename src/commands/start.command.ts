@@ -9,11 +9,45 @@ export class StartCommand extends Command {
 
   handle(): void {
     this.bot.start((ctx) => {
-      const keyboard = Markup.keyboard([
-        Markup.button.contactRequest("📞 Отправить свой телефон"),
-      ]);
+      ctx.reply("Добро пожаловать в телеграм бот!");
+      ctx.reply("Ваше имя?");
+      ctx.session.step = "name";
+    });
 
-      ctx.reply("Введите номер телефона:", keyboard);
+    this.bot.on("text", (ctx) => {
+      switch (ctx.session.step) {
+        case "name":
+          ctx.session.name = ctx.message.text;
+          ctx.reply("Отлично!");
+          ctx.reply("Ваша фамилия?");
+          ctx.session.step = "surname";
+          break;
+        case "surname":
+          ctx.session.surname = ctx.message.text;
+          ctx.reply("Отлично!");
+          ctx.reply("Ваша организация?");
+          ctx.session.step = "organization";
+          break;
+        case "organization":
+          ctx.session.organization = ctx.message.text;
+          ctx.reply("Отлично!");
+          const keyboard = Markup.keyboard([
+            Markup.button.contactRequest("📞 Отправить свой телефон"),
+          ]);
+          ctx.reply("Ваш телефон?", keyboard);
+          ctx.session.step = "phone";
+          break;
+        case "phone":
+          if (this.phoneValidator(ctx.message.text)) {
+            ctx.session.phone_number = ctx.message.text;
+            ctx.reply("Отлично!", Markup.removeKeyboard());
+          }
+          break;
+        default:
+          ctx.reply("Неверный ввод!");
+          ctx.session.step = "age";
+          break;
+      }
     });
 
     this.bot.on("contact", async (ctx) => {
@@ -21,29 +55,6 @@ export class StartCommand extends Command {
       const message = `Ваш телефон: ${phone}`;
       ctx.reply(message);
       ctx.reply("Спасибо!", Markup.removeKeyboard());
-    });
-
-    this.bot.on("text", async (ctx) => {
-      const text = ctx.message.text;
-      const session = ctx.session;
-
-      if (!session.phone_number) {
-        const phoneNumber = ctx.message.text;
-        if (!this.phoneValidator(phoneNumber)) {
-          ctx.reply("Неправильный телефон");
-        }
-        session.phone_number = phoneNumber;
-        ctx.reply("Пожалуйста введите ваше имя!", Markup.removeKeyboard());
-      } else if (!session.name) {
-        session.name = text;
-        ctx.reply("Пожалуйста введите вашу фамилию!");
-      } else if (!session.surname) {
-        session.surname = text;
-        ctx.reply("Пожалуйста введите вашу организацию!");
-      } else {
-        session.organization = text;
-        ctx.reply("Спасибо за регистрацию!");
-      }
     });
   }
 
